@@ -53,6 +53,18 @@ function Professions.Read()
     return known
 end
 
+-- Copia en la entrada de cuenta las profesiones que este personaje piensa aprender, para que otro
+-- personaje las vea con la opción de alts (la SV por personaje solo la lee el propio personaje).
+local function SavePlanned(entry)
+    local planned = {}
+    for key, on in pairs(ns.charDB.planned or {}) do
+        if on == true then
+            planned[key] = true
+        end
+    end
+    entry.planned = planned
+end
+
 -- Lee las profesiones, las guarda en la entrada del personaje (para la opción de alts) y avisa a
 -- los módulos si han cambiado.
 function Professions.Refresh()
@@ -62,6 +74,7 @@ function Professions.Refresh()
     local entry = ns.Identity.GetCharEntry(ns.db)
     if entry then
         entry.professions = known
+        SavePlanned(entry)
         local _, class = UnitClass("player")
         entry.class = ns.Readable(class, entry.class)
         ns.charKey = ns.Identity.GetCharacterKey()
@@ -90,6 +103,13 @@ function module:OnInitialize()
         CHILD[parent] = child
     end
     ns.professions = {}
+end
+
+function module:ApplySettings()
+    local entry = ns.charKey and ns.db.chars[ns.charKey]
+    if entry then
+        SavePlanned(entry)
+    end
 end
 
 function module:OnEnable()

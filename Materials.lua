@@ -29,12 +29,37 @@ function Materials.SameProfessions(a, b)
     return true
 end
 
--- Perfil que se evalúa: las profesiones aprendidas y, si se pide, las secundarias sin aprender
--- (rango 0: todas sus recetas suben).
-function Materials.BuildProfile(professions, includeSecondaries)
+-- Profesiones que se pueden marcar como «pienso aprender»: las primarias (Venenos es de clase y las
+-- secundarias ya tienen su propia opción).
+function Materials.Plannable()
+    local list = {}
+    for skill, def in pairs(ns.PROFESSIONS) do
+        if not def.secondary and skill ~= 40 then
+            list[#list + 1] = skill
+        end
+    end
+    table.sort(list, function(a, b)
+        return (ns.PROFESSION_NAMES[a] or "") < (ns.PROFESSION_NAMES[b] or "")
+    end)
+    return list
+end
+
+function Materials.PlannedKey(skill)
+    return "p" .. skill
+end
+
+-- Perfil que se evalúa: las profesiones aprendidas; las que piensas aprender (`planned`, tabla
+-- "p<skillLine>" = true) y, si se pide, las secundarias sin aprender, ambas con rango 0: todas sus
+-- recetas suben.
+function Materials.BuildProfile(professions, includeSecondaries, planned)
     local profile = {}
     for skill, p in pairs(professions or {}) do
         profile[skill] = { rank = p.rank or 0, learned = true }
+    end
+    for skill in pairs(ns.PROFESSIONS) do
+        if not profile[skill] and planned and planned[Materials.PlannedKey(skill)] == true then
+            profile[skill] = { rank = 0, learned = false, planned = true }
+        end
     end
     if includeSecondaries then
         for skill, def in pairs(ns.PROFESSIONS) do
@@ -44,6 +69,11 @@ function Materials.BuildProfile(professions, includeSecondaries)
         end
     end
     return profile
+end
+
+-- El perfil del personaje con las opciones actuales.
+function Materials.MyProfile()
+    return Materials.BuildProfile(ns.professions, ns.db.secondaries, ns.charDB and ns.charDB.planned)
 end
 
 -- nil si el objeto no es material de ninguna profesión del perfil. Si lo es:
@@ -76,6 +106,7 @@ local function EvaluateIn(itemID, profile, visiting)
                 skill = skill,
                 rank = p.rank,
                 learned = p.learned,
+                planned = p.planned,
                 useful = useful,
                 total = #grays,
                 maxGray = maxGray,
@@ -123,7 +154,7 @@ function Materials.Evaluate(itemID, profile)
 end
 
 -- Otros personajes con las mismas reglas (no se comparten objetos entre Hardcore y normal) a los
--- que el material aún les sirve: { { key, skill, rank, useful, via } }.
+-- que el material aún les sirve: { { key, skill, rank, learned, planned, useful, via } }.
 function Materials.EvaluateAlts(itemID)
     local out = {}
     local uses = ns.MATERIALS[itemID]
@@ -135,10 +166,19 @@ function Materials.EvaluateAlts(itemID)
     for key, entry in pairs(ns.db.chars) do
         if key ~= ns.charKey and type(entry) == "table" and entry.professions then
             if ruleset == nil or entry.ruleset == nil or entry.ruleset == ruleset then
-                local result = Materials.Evaluate(itemID, Materials.BuildProfile(entry.professions, false))
+                local result =
+                    Materials.Evaluate(itemID, Materials.BuildProfile(entry.professions, false, entry.planned))
                 for _, e in ipairs(result and result.entries or {}) do
                     if e.useful > 0 or e.via then
-                        out[#out + 1] = { key = key, skill = e.skill, rank = e.rank, useful = e.useful, via = e.via }
+                        out[#out + 1] = {
+                            key = key,
+                            skill = e.skill,
+                            rank = e.rank,
+                            learned = e.learned,
+                            planned = e.planned,
+                            useful = e.useful,
+                            via = e.via,
+                        }
                     end
                 end
             end
@@ -162,7 +202,7 @@ function Materials.Status(itemID)
         return cached.status or nil, cached.skill
     end
     local db = ns.db
-    local result = Materials.Evaluate(itemID, Materials.BuildProfile(ns.professions, db.secondaries))
+    local result = Materials.Evaluate(itemID, Materials.MyProfile())
     local status, skill
     if result and result.keep then
         status, skill = "keep", result.entries[1].skill

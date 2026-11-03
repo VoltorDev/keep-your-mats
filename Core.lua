@@ -19,6 +19,9 @@ ns.DEFAULTS = {
 }
 ns.CHAR_DEFAULTS = {
     schema = 1,
+    -- Profesiones que este personaje piensa aprender: "p<skillLine>" = true. Config.lua rellena
+    -- una clave a false por profesión cuando ya están cargados los datos de recetas.
+    planned = {},
 }
 
 -- MIGRATIONS[n] convierte la base de datos de cuenta del esquema n-1 al n; CHAR_MIGRATIONS hace lo

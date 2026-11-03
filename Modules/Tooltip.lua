@@ -28,12 +28,22 @@ local function ItemName(itemID)
     return "item " .. itemID
 end
 
+-- «Sastrería 87», «Sastrería (pienso aprenderla)» o «Cocina (sin aprender)».
+local function Where(e)
+    if e.learned then
+        return ("%s %d"):format(Name(e.skill), e.rank)
+    elseif e.planned then
+        return L.PLANNED:format(Name(e.skill))
+    end
+    return L.NOT_LEARNED:format(Name(e.skill))
+end
+
 function module.Lines(itemID)
     local db = ns.db
     local lines = {}
-    local result = ns.Materials.Evaluate(itemID, ns.Materials.BuildProfile(ns.professions, db.secondaries))
+    local result = ns.Materials.Evaluate(itemID, ns.Materials.MyProfile())
     for _, e in ipairs(result and result.entries or {}) do
-        local where = e.learned and ("%s %d"):format(Name(e.skill), e.rank) or L.NOT_LEARNED:format(Name(e.skill))
+        local where = Where(e)
         local via = e.via
         if e.useful > 0 then
             lines[#lines + 1] = Icon(e.skill) .. GREEN .. L.KEEP_LINE:format(where, e.useful, e.maxGray) .. "|r"
@@ -57,9 +67,9 @@ function module.Lines(itemID)
             local a = alts[i]
             local text
             if a.useful > 0 then
-                text = L.ALT_LINE:format(a.key, Name(a.skill), a.rank, a.useful)
+                text = L.ALT_LINE:format(a.key, Where(a), a.useful)
             else
-                text = L.ALT_LATER_LINE:format(a.key, Name(a.skill), a.rank, ItemName(a.via.item))
+                text = L.ALT_LATER_LINE:format(a.key, Where(a), ItemName(a.via.item))
             end
             lines[#lines + 1] = Icon(a.skill) .. GOLD .. text .. "|r"
         end

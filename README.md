@@ -14,6 +14,9 @@ para subir tus profesiones, para que los guardes en vez de venderlos en la subas
 - **Profesiones que cuenta**: las que tiene el personaje (incluida Minería por la fundición, Venenos en
   pícaros y las recetas de campamento de Herboristería, Desuello y Pesca) y, por defecto, las
   secundarias Cocina, Primeros auxilios y Pesca aunque no estén aprendidas.
+- **Profesiones que piensas aprender**: eliges, por personaje, las primarias que aún no tienes y quieres
+  subir; sus materiales se marcan como si la tuvieras a nivel 1, y el tooltip lo indica («pienso
+  aprenderla»).
 - **Otros personajes** (opción, apagada por defecto): marca también lo que le sube una profesión a
   otro de tus personajes con las mismas reglas de reino (Hardcore aparte). Cada personaje se recuerda al
   entrar con él.
@@ -27,9 +30,10 @@ nivel, menos las de Season of Discovery, que el cliente arrastra pero Forever no
 ## Ajustes dentro del juego
 
 - **Icono de la bolsa**: clic en el retrato de la mochila (o de la bolsa combinada) → «GuardaMateriales»,
-  con todas las opciones en casillas y «Todos los ajustes...».
+  con todas las opciones en casillas, el submenú «Profesiones que pienso aprender» y «Todos los
+  ajustes...».
 - **Panel completo**: Esc → Opciones → AddOns → GuardaMateriales, por secciones (Qué se ve, Qué
-  cuenta, Subasta). También se abre desde el botón de addons junto al minimapa.
+  cuenta, Profesiones que pienso aprender, Subasta). También se abre desde el botón de addons junto al minimapa.
 
 ## Comandos (opcionales)
 

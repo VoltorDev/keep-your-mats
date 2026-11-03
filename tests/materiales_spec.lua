@@ -403,7 +403,7 @@ describe("menú de ajustes dentro del juego", function()
 
     it("el panel de Opciones > AddOns va por secciones", function()
         local env, ns = boot()
-        local headers = { ns.L.SECTION_MARKS, ns.L.SECTION_COUNTS, ns.L.SECTION_AUCTION }
+        local headers = { ns.L.SECTION_MARKS, ns.L.SECTION_COUNTS, ns.L.SECTION_PLANNED, ns.L.SECTION_AUCTION }
         assert.are.same(headers, Cliente.fake(env).SettingsHeaders())
     end)
 
@@ -453,6 +453,64 @@ describe("menú de ajustes dentro del juego", function()
         local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", "GuardaMateriales")
         assert.is_not_nil(find(entry.children, "checkbox", "Marcar en bolsas y banco"))
         assert.is_not_nil(find(entry.children, "button", "Todos los ajustes..."))
+    end)
+end)
+
+describe("profesiones que pienso aprender", function()
+    local function find(entries, kind, text)
+        for _, e in ipairs(entries) do
+            if e.kind == kind and e.text == text then
+                return e
+            end
+        end
+    end
+
+    it("cuentan con rango 0, marcadas como previstas; si ya la tienes, manda tu rango", function()
+        local _, ns = boot()
+        local profile = ns.Materials.BuildProfile({}, false, { p197 = true, p164 = false })
+        assert.are.same({ rank = 0, learned = false, planned = true }, profile[TAILORING])
+        assert.is_nil(profile[BLACKSMITHING])
+        local learned = ns.Materials.BuildProfile(
+            { [TAILORING] = { rank = 80, maxRank = 150 } },
+            false,
+            { p197 = true }
+        )
+        assert.are.same({ rank = 80, learned = true }, learned[TAILORING])
+    end)
+
+    it("se eligen desde el submenú de la bolsa y sus materiales se marcan", function()
+        local env, ns, fake = boot({ bags = { [0] = { [1] = 500 } }, itemNames = { [600] = "Rollo" } })
+        env.ContainerFrame1:Show()
+        env.ContainerFrame1:UpdateItems()
+        local button = fake.Button("ContainerFrame1", 1)
+        assert.is_nil(fake.Mark(button)) -- herrero: el paño no le sirve
+
+        local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", ns.L.ADDON_TITLE)
+        local planned = find(entry.children, "button", ns.L.SECTION_PLANNED)
+        assert.are.equal(9, #planned.children)
+        local tailoring = find(planned.children, "checkbox", "Tailoring")
+        assert.is_false(tailoring.isSelected())
+        tailoring.setSelected()
+
+        assert.is_true(env.GuardaMaterialesCharDB.planned.p197)
+        assert.is_true(tailoring.isSelected())
+        assert.is_not_nil(fake.Mark(button))
+        contains(joined(fake.ShowItemTooltip(500)), "Keep: Tailoring (planned), 1 recipes still level you (up to 50)")
+        assert.are.same({ p197 = true }, ns.db.chars[ns.charKey].planned) -- visible para los alts
+    end)
+
+    it("un alt ve lo que otro personaje piensa aprender", function()
+        local _, ns, fake = boot({ professions = {} })
+        ns.db.alts = true
+        ns.db.chars["Futura Pj"] = { professions = {}, planned = { p186 = true } }
+        contains(joined(fake.ShowItemTooltip(100)), "Futura Pj, Mining (planned): 1 recipes level them")
+    end)
+
+    it("en español", function()
+        local _, ns, fake = boot({ locale = "esES" })
+        ns.charDB.planned.p197 = true
+        ns:ApplySettings()
+        contains(joined(fake.ShowItemTooltip(500)), "Sastrería (pienso aprenderla)")
     end)
 end)
 

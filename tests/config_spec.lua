@@ -15,6 +15,9 @@ local OPTIONS = {
     AHWarning = "ahWarning",
 }
 
+-- Profesiones que se pueden marcar como «pienso aprender» (primarias): una casilla por personaje.
+local PLANNABLE = 9
+
 local function countKeys(t)
     local n = 0
     for _ in pairs(t) do
@@ -32,7 +35,7 @@ describe("opciones en Settings", function()
         assert.are.equal(0, countKeys(registry.settings))
 
         env:Fire("ADDON_LOADED", env:AddonName(), false)
-        assert.are.equal(countKeys(OPTIONS), countKeys(registry.settings))
+        assert.are.equal(countKeys(OPTIONS) + PLANNABLE, countKeys(registry.settings))
         assert.are.equal(1, #registry.addOnCategories)
         assert.are.equal(ns.settingsCategory, registry.addOnCategories[1])
         assert.are.equal(ns.L.ADDON_TITLE, ns.settingsCategory:GetName())
@@ -46,12 +49,16 @@ describe("opciones en Settings", function()
             assert.are.equal("boolean", type(ns.DEFAULTS[key]), "sin valor por defecto: " .. key)
         end
         assert.is_true(registry.settings[env:AddonName() .. "_Alts"]:GetValue()) -- no pisa lo guardado
+        local planned = registry.settings[env:AddonName() .. "_Planned171"] -- Alquimia
+        assert.are.equal(env.GuardaMaterialesCharDB.planned, planned.variableTbl) -- tabla del personaje
+        assert.are.equal("p171", planned.variableKey)
+        assert.is_false(planned:GetValue())
     end)
 
     it("crea una casilla por opción", function()
         local env = WowEnv.boot(TOC)
         local controls = env:SettingsRegistry().controls
-        assert.are.equal(countKeys(OPTIONS), #controls)
+        assert.are.equal(countKeys(OPTIONS) + PLANNABLE, #controls)
         for _, control in ipairs(controls) do
             assert.are.equal("Checkbox", control.kind)
         end
