@@ -1,0 +1,36 @@
+## Interface: 16001
+## AllowLoadGameType: camelot, forever
+## ExcludeLoadGameType: standard, classic
+## Title: GuardaMateriales
+## Notes: Marks the materials in your bags that still level your professions, so you keep them instead of selling them.
+## Notes-esES: Marca en tus bolsas los materiales que aún te suben las profesiones, para que los guardes en vez de venderlos.
+## Notes-esMX: Marca en tus bolsas los materiales que aún te suben las profesiones, para que los guardes en vez de venderlos.
+## Author: Nico
+## Version: @project-version@
+## IconTexture: Interface\Icons\INV_Fabric_Linen_01
+## SavedVariables: GuardaMaterialesDB
+## SavedVariablesPerCharacter: GuardaMaterialesCharDB
+## AddonCompartmentFunc: GuardaMateriales_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: GuardaMateriales_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: GuardaMateriales_OnAddonCompartmentLeave
+## X-Game: [Game]
+## X-Family: [Family]
+## X-Flavor: Forever
+## X-License: MIT
+## X-Curse-Project-ID: 0
+## X-Wago-ID: 0
+
+Locales\enUS.lua
+Locales\esES.lua
+Detect.lua
+Identity.lua
+Secrets.lua
+Core.lua
+Datos\Recetas.lua
+Materials.lua
+Professions.lua
+Config.lua
+Slash.lua
+Modules\Bags.lua
+Modules\Tooltip.lua
+Modules\AuctionHouse.lua
