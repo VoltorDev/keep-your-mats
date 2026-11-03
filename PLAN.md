@@ -17,8 +17,10 @@ del lanzamiento.
 | Marca en bolsas (ContainerFrame1..N y bolsa combinada) y banco (`BankPanel`) | Sí | Tests. Puntos de enganche leídos en la interfaz de Forever (build 70291). **Sin ver en el cliente** |
 | Tooltip de objeto (`TooltipDataProcessor`) | Sí | Tests en inglés y español. **Sin ver en el cliente** |
 | Aviso al poner en venta en la subasta (`ItemSellFrame`/`CommoditiesSellFrame:SetItem`) | Sí | Tests. **Sin ver en el cliente** dónde queda el texto rojo |
+| Materiales intermedios (03-11-2026, pedido de Nico: «que marque las que me servirán más adelante»). Las recetas de nivel superior ya contaban; faltaban los intermedios: el paño de lino salía «ya no te sube» para un sastre de 60 aunque el rollo le sirve hasta 115. `PRODUCES` (SpellEffect, efecto 24 «crear objeto»): 172 materiales con intermedio; solo cuenta si tienes la profesión que lo fabrica; ciclos cortados | Sí | Tests con datos inventados (cadena, ciclo, otra profesión, alts) y con los reales (paño de lino → rollo para un sastre de 60). **Sin ver en el cliente** |
+| Ajustes dentro del juego (03-11-2026, pedido de Nico: «menú de ajustes dentro del juego, no por comando»): panel de Opciones > AddOns por secciones y entrada en el menú del icono de la bolsa (`Menu.ModifyMenu` con `MENU_CONTAINER_FRAME` y `MENU_CONTAINER_FRAME_COMBINED`) con las 7 casillas y «Todos los ajustes...». Los comandos quedan como extra | Sí | Tests del menú y del panel (casilla → opción guardada, aplicada y reflejada en el panel; sin abrir en combate). Etiquetas de menú leídas en la interfaz de Forever (build 70291). **Sin ver en el cliente** |
 | Opciones (7 casillas) y `/guardamat` (`item`, `debug`, `reset`) | Sí | Tests |
-| Comprobaciones fuera del juego | — | Las seis pasan (03-11-2026): luacheck, StyLua, LuaLS, `api_forever` (3 avisos de secretos revisados: GUID y clase se filtran, `CHAT_MSG_SKILL` no se lee), 111 tests en Lua 5.1 y LuaJIT, sin XML |
+| Comprobaciones fuera del juego | — | Las seis pasan (03-11-2026): luacheck, StyLua, LuaLS, `api_forever` (3 avisos de secretos revisados: GUID y clase se filtran, `CHAT_MSG_SKILL` no se lee), 124 tests en Lua 5.1 y LuaJIT, sin XML |
 | Enlazado en `_forever_\Interface\AddOns` | Sí | Junction creada el 03-11-2026 |
 
 ## Pendiente
@@ -35,6 +37,11 @@ del lanzamiento.
    - En la subasta, poner un material en la ranura de venta: texto rojo, mensaje y sonido. Mirar que el
      texto no tape nada; si lo tapa, mover el anclaje en `Modules/AuctionHouse.lua`.
    - Abrir el banco y ver las marcas en sus huecos.
+   - Clic en el icono de la mochila: entrada «GuardaMateriales» con las casillas; quitar «Marcar en
+     bolsas y banco» y ver que las marcas desaparecen; «Todos los ajustes...» abre el panel con sus tres
+     secciones.
+   - Con Sastrería por encima de 50 y paño de lino en la bolsa: marca y línea «para fabricar Rollo de
+     paño de lino».
 2. **Regenerar los datos tras cada parche** que toque recetas (`python -I -B tools/generar_datos.py`) y
    repasar el recuento por profesión que imprime.
 3. **Ideas, sin decidir**: lista de objetos a ignorar a mano; aviso también al vender al mercader;

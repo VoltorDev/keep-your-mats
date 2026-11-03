@@ -10,12 +10,17 @@ local L = setmetatable({}, {
 ns.L = L
 
 L.ADDON_TITLE = "GuardaMateriales"
-L.LOADED = "loaded. Type /guardamat for options."
+L.LOADED = "loaded. Settings: click the bag icon, the addons button by the minimap, or Options > AddOns."
 L.SLASH_HELP = "Commands: /guardamat [config | debug | item <link or ID> | reset]"
 L.ERR_COMBAT = "Not available in combat; try again when combat ends."
 L.RESET_CONFIRM = "Type /guardamat reset confirm to restore the defaults."
 L.RESET_DONE = "Settings restored to defaults."
 L.COMPARTMENT_TOOLTIP = "Click to open the options."
+
+L.SECTION_MARKS = "What you see"
+L.SECTION_COUNTS = "What counts"
+L.SECTION_AUCTION = "Auction house"
+L.MENU_MORE = "All settings..."
 
 L.OPT_ENABLED = "Enable"
 L.OPT_ENABLED_TT = "Turns every mark, tooltip line and warning of this addon on or off."
@@ -36,9 +41,12 @@ L.OPT_AH_WARNING_TT = "Warns, with a message and a sound, when you place a mater
 L.TOOLTIP_HEADER = "Profession material"
 L.NOT_LEARNED = "%s (not learned)"
 L.KEEP_LINE = "Keep: %s, %d recipes still level you (up to %d)"
+L.LATER_LINE = "Keep: %s, to make %s, which helps you up to %d"
+L.ALSO_LINE = "  and to make %s, which helps you up to %d"
 L.DONE_LINE = "%s: no longer levels you (all grey from %d)"
 L.USED_LINE = "%s: used in %d recipes"
 L.ALT_LINE = "%s, %s %d: %d recipes level them"
+L.ALT_LATER_LINE = "%s, %s %d: to make %s"
 L.ALT_MORE = "...and %d more"
 L.AH_WARNING = "You need this for %s!"
 L.AH_WARNING_CHAT = "%s still levels %s. Keep it instead of selling it."

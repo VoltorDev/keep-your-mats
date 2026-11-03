@@ -18,13 +18,22 @@ para subir tus profesiones, para que los guardes en vez de venderlos en la subas
   otro de tus personajes con las mismas reglas de reino (Hardcore aparte). Cada personaje se recuerda al
   entrar con él.
 
-Un material «te sirve» si alguna receta que lo usa sigue por debajo de gris para tu nivel actual. Se
-cuentan todas las recetas de la profesión que trae el cliente de Forever, aprendidas o no, menos las de
-Season of Discovery, que el cliente arrastra pero Forever no ofrece.
+Un material «te sirve» si alguna receta que lo usa sigue por debajo de gris para tu nivel actual, o si
+con él fabricas un intermedio que te servirá más adelante (paño de lino → rollo de paño de lino, mena →
+barra): el paño se guarda aunque la receta del rollo ya sea gris, mientras el rollo te siga subiendo. Se
+cuentan todas las recetas de la profesión que trae el cliente de Forever, aprendidas o no y de cualquier
+nivel, menos las de Season of Discovery, que el cliente arrastra pero Forever no ofrece.
 
-## Uso
+## Ajustes dentro del juego
 
-- `/guardamat` (o `/guardamateriales`, o el botón del compartimento junto al minimapa) abre las opciones.
+- **Icono de la bolsa**: clic en el retrato de la mochila (o de la bolsa combinada) → «GuardaMateriales»,
+  con todas las opciones en casillas y «Todos los ajustes...».
+- **Panel completo**: Esc → Opciones → AddOns → GuardaMateriales, por secciones (Qué se ve, Qué
+  cuenta, Subasta). También se abre desde el botón de addons junto al minimapa.
+
+## Comandos (opcionales)
+
+- `/guardamat` (o `/guardamateriales`) abre el panel.
 - `/guardamat item <enlace o ID>` escribe en el chat lo mismo que el tooltip.
 - `/guardamat debug` muestra el diagnóstico, con las profesiones tal como las devuelve el cliente.
 - `/guardamat reset confirmar` restaura las opciones (los personajes recordados se conservan).
@@ -33,7 +42,7 @@ Season of Discovery, que el cliente arrastra pero Forever no ofrece.
 
 `Datos/Recetas.lua` lo genera `tools/generar_datos.py` a partir de las tablas DB2 del propio cliente
 de Forever (wago.tools, producto `wowf`: SkillLine, SkillLineAbility, SpellReagents,
-TradeSkillCategory e ItemSparse). Tras un parche que cambie recetas:
+SpellEffect, TradeSkillCategory e ItemSparse). Tras un parche que cambie recetas:
 
 ```powershell
 python -I -B tools/generar_datos.py

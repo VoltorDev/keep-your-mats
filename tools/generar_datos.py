@@ -1,7 +1,7 @@
 """Genera Datos/Recetas.lua a partir de las tablas DB2 del cliente de WoW Forever.
 
 Fuente: wago.tools, producto `wowf` (las tablas se leen del propio cliente de Forever).
-Tablas: SkillLine, SkillLineAbility, SpellReagents, TradeSkillCategory e ItemSparse.
+Tablas: SkillLine, SkillLineAbility, SpellReagents, SpellEffect, TradeSkillCategory e ItemSparse.
 
 Uso:
     python -I -B tools/generar_datos.py                 # última build de wowf
@@ -14,6 +14,9 @@ Reglas:
 - Para cada material y profesión guarda el umbral gris (TrivialSkillLineRankHigh) de cada
   receta que lo usa: con la habilidad actual del personaje se sabe cuántas aún le suben.
 - Un reactivo que no existe en ItemSparse no puede estar en las bolsas: se descarta.
+- Materiales intermedios: si una receta convierte un material en otro que también es material
+  (Paño de lino -> Rollo de paño de lino), se guarda en PRODUCES. Así el paño cuenta mientras el
+  rollo te siga sirviendo, aunque la receta del rollo ya sea gris.
 """
 
 import argparse
@@ -27,7 +30,8 @@ import urllib.request
 
 WAGO = "https://wago.tools"
 PRODUCT = "wowf"
-TABLES = ["SkillLine", "SkillLineAbility", "SpellReagents", "TradeSkillCategory", "ItemSparse"]
+TABLES = ["SkillLine", "SkillLineAbility", "SpellReagents", "SpellEffect", "TradeSkillCategory", "ItemSparse"]
+CREATE_ITEM = 24  # SpellEffect.Effect de las recetas que fabrican un objeto
 
 # Líneas de habilidad que se tratan como profesión. "secondary": se vigila aunque el personaje
 # no la haya aprendido (Cocina, Primeros auxilios y Pesca). Venenos es de pícaro y solo cuenta si
@@ -76,6 +80,11 @@ def build_data(tables):
     categories = {int(r["ID"]): r for r in tables["TradeSkillCategory"]}
     reagents_by_spell = {int(r["SpellID"]): r for r in tables["SpellReagents"]}
     items = {int(r["ID"]) for r in tables["ItemSparse"]}
+    outputs = {}  # spell -> objetos que fabrica
+    for r in tables["SpellEffect"]:
+        item = int(r["EffectItemType"])
+        if int(r["Effect"]) == CREATE_ITEM and item:
+            outputs.setdefault(int(r["SpellID"]), set()).add(item)
 
     excluded = {
         cid for cid, r in categories.items() if EXCLUDED_CATEGORY_NAME in (r["Name_lang"] or "").upper()
@@ -89,6 +98,7 @@ def build_data(tables):
             parents[sid] = parent
 
     materials = {}  # itemID -> skillLine -> [umbral gris por receta]
+    made = []  # (material, skillLine, objeto fabricado)
     recipes = {p: 0 for p in PROFESSIONS}
     skipped_sod = 0
     for row in tables["SkillLineAbility"]:
@@ -110,20 +120,30 @@ def build_data(tables):
                 continue
             materials.setdefault(item, {}).setdefault(skill, []).append(gray)
             used = True
+            for output in outputs.get(spell, ()):
+                if output != item:
+                    made.append((item, skill, output))
         if used:
             recipes[skill] += 1
 
+    # Solo interesan los productos que a su vez son material de alguna profesión.
+    produces = {}  # itemID -> skillLine -> {objetos fabricados que son material}
+    for item, skill, output in made:
+        if output in materials:
+            produces.setdefault(item, {}).setdefault(skill, set()).add(output)
+
     icons = {p: int(skill_lines[p]["SpellIconFileID"]) for p in PROFESSIONS if p in skill_lines}
-    return materials, parents, icons, recipes, skipped_sod
+    return materials, produces, parents, icons, recipes, skipped_sod
 
 
-def to_lua(materials, parents, icons, build):
+def to_lua(materials, produces, parents, icons, build):
     today = datetime.date.today().strftime("%d-%m-%Y")
     out = io.StringIO()
     out.write("local _, ns = ...\n\n")
     out.write(f"-- GENERADO por tools/generar_datos.py con las tablas DB2 de Forever (wago.tools, {PRODUCT}\n")
     out.write(f"-- build {build}, {today}). No se edita a mano: se regenera.\n")
-    out.write("-- MATERIALS[itemID][skillLine] = umbrales grises de las recetas que usan ese material.\n\n")
+    out.write("-- MATERIALS[itemID][skillLine] = umbrales grises de las recetas que usan ese material.\n")
+    out.write("-- PRODUCES[itemID][skillLine] = materiales que esa profesión fabrica con él.\n\n")
     out.write(f'ns.DATA_BUILD = "{build}"\n\n')
     out.write("ns.PROFESSIONS = {\n")
     for p in sorted(PROFESSIONS):
@@ -140,6 +160,14 @@ def to_lua(materials, parents, icons, build):
         for skill in sorted(materials[item]):
             grays = ", ".join(str(g) for g in sorted(materials[item][skill], reverse=True))
             parts.append(f"[{skill}] = {{ {grays} }}")
+        out.write(f"    [{item}] = {{ {', '.join(parts)} }},\n")
+    out.write("}\n\n")
+    out.write("ns.PRODUCES = {\n")
+    for item in sorted(produces):
+        parts = []
+        for skill in sorted(produces[item]):
+            made = ", ".join(str(o) for o in sorted(produces[item][skill]))
+            parts.append(f"[{skill}] = {{ {made} }}")
         out.write(f"    [{item}] = {{ {', '.join(parts)} }},\n")
     out.write("}\n")
     return out.getvalue()
@@ -158,12 +186,15 @@ def main():
 
     build = args.build or latest_build()
     tables = {name: load_table(name, build, args.cache) for name in TABLES}
-    materials, parents, icons, recipes, skipped = build_data(tables)
+    materials, produces, parents, icons, recipes, skipped = build_data(tables)
 
     args.salida.parent.mkdir(parents=True, exist_ok=True)
-    args.salida.write_text(to_lua(materials, parents, icons, build), encoding="utf-8", newline="\n")
+    args.salida.write_text(to_lua(materials, produces, parents, icons, build), encoding="utf-8", newline="\n")
 
-    print(f"build {build}: {len(materials)} materiales; recetas de Season of Discovery descartadas: {skipped}")
+    print(
+        f"build {build}: {len(materials)} materiales, {len(produces)} con productos intermedios; "
+        f"recetas de Season of Discovery descartadas: {skipped}"
+    )
     for p in sorted(recipes):
         print(f"  {p}: {recipes[p]} recetas")
     if not materials:

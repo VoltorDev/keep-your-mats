@@ -7,16 +7,27 @@ local Secret = require("secret_mock")
 
 local TOC = "GuardaMateriales.toc"
 
-local BLACKSMITHING, MINING, TAILORING, COOKING, POISONS = 164, 186, 197, 185, 40
+local BLACKSMITHING, MINING, TAILORING, COOKING, POISONS, LEATHERWORKING = 164, 186, 197, 185, 40, 165
 local BS_ICON = 136241
 
 -- Objetos de prueba: 100 Herrería + Minería, 200 Cocina, 300 Sastrería (receta sin dificultad),
--- 400 Venenos. 999 no es material.
+-- 400 Venenos. 999 no es material. Intermedios de Sastrería: 500 (paño, su receta gris en 50)
+-- fabrica 600 (rollo, que sirve hasta 110 en Sastrería y 120 en Peletería); 700 y 701 se fabrican
+-- el uno al otro (ciclo).
 local MATERIALS = {
     [100] = { [BLACKSMITHING] = { 50, 30 }, [MINING] = { 25 } },
     [200] = { [COOKING] = { 90, 85 } },
     [300] = { [TAILORING] = { 0 } },
     [400] = { [POISONS] = { 200 } },
+    [500] = { [TAILORING] = { 50 } },
+    [600] = { [TAILORING] = { 110, 90 }, [LEATHERWORKING] = { 120 } },
+    [700] = { [TAILORING] = { 30 } },
+    [701] = { [TAILORING] = { 30 } },
+}
+local PRODUCES = {
+    [500] = { [TAILORING] = { 600 } },
+    [700] = { [TAILORING] = { 701 } },
+    [701] = { [TAILORING] = { 700 } },
 }
 
 local function contains(text, fragment)
@@ -34,6 +45,7 @@ local function boot(opts)
         or { { skillLine = 2938, rank = 40, maxRank = 75, name = "Blacksmithing", icon = BS_ICON } }
     local env, ns = Cliente.boot(TOC, opts)
     ns.MATERIALS = MATERIALS
+    ns.PRODUCES = PRODUCES
     ns.Materials.Invalidate()
     return env, ns, Cliente.fake(env)
 end
@@ -90,6 +102,63 @@ describe("Materials.Evaluate", function()
     it("una secundaria aprendida usa su rango real", function()
         local profile = ns.Materials.BuildProfile({ [COOKING] = { rank = 90, maxRank = 150 } }, true)
         assert.is_false(ns.Materials.Evaluate(200, profile).keep)
+    end)
+end)
+
+describe("materiales intermedios (servirán más adelante)", function()
+    local function tailor(rank, extra)
+        local opts = extra or {}
+        opts.professions = { { skillLine = 2948, rank = rank, maxRank = 150 } }
+        return boot(opts)
+    end
+
+    it("el paño cuenta mientras el rollo te sirva, aunque la receta del rollo ya sea gris", function()
+        local _, ns = tailor(60)
+        local result = ns.Materials.Evaluate(500, ns.Materials.BuildProfile(ns.professions, false))
+        assert.is_true(result.keep)
+        local e = result.entries[1]
+        assert.are.equal(0, e.useful)
+        assert.are.same({ item = 600, reach = 110 }, e.via)
+        assert.are.equal(110, result.reach)
+        assert.are.same({ "keep", TAILORING }, { ns.Materials.Status(500) })
+    end)
+
+    it("cuando el rollo tampoco sirve, el paño ya no se guarda", function()
+        local _, ns = tailor(120)
+        assert.are.equal("done", (ns.Materials.Status(500)))
+    end)
+
+    it("un intermedio de otra profesión no cuenta si no tienes la que lo fabrica", function()
+        local _, ns = boot({ professions = { { skillLine = 2945, rank = 10, maxRank = 75 } } })
+        assert.is_nil(ns.Materials.Status(500)) -- sin Sastrería no fabricas el rollo
+        assert.are.equal("keep", (ns.Materials.Status(600)))
+    end)
+
+    it("un ciclo de productos no se recorre sin fin", function()
+        local _, ns = tailor(40)
+        assert.are.equal("done", (ns.Materials.Status(700)))
+    end)
+
+    it("el tooltip dice para qué intermedio sirve y hasta dónde", function()
+        local _, _, fake = tailor(60, { itemNames = { [600] = "Rollo" } })
+        contains(joined(fake.ShowItemTooltip(500)), "Keep: Tailoring 60, to make Rollo, which helps you up to 110")
+        local _, _, low = tailor(20, { itemNames = { [600] = "Rollo" } })
+        local text = joined(low.ShowItemTooltip(500))
+        contains(text, "Keep: Tailoring 20, 1 recipes still level you (up to 50)")
+        contains(text, "and to make Rollo, which helps you up to 110")
+    end)
+
+    it("sin el nombre en caché enseña el ID y pide el objeto al cliente", function()
+        local _, _, fake = tailor(60)
+        contains(joined(fake.ShowItemTooltip(500)), "to make item 600")
+        assert.are.same({ 600 }, fake.ItemRequests())
+    end)
+
+    it("en un alt, nombra el intermedio", function()
+        local _, ns, fake = boot({ professions = {}, itemNames = { [600] = "Rollo" } })
+        ns.db.alts = true
+        ns.db.chars["Sastra Pj"] = { professions = { [TAILORING] = { rank = 60, maxRank = 150 } } }
+        contains(joined(fake.ShowItemTooltip(500)), "Sastra Pj, Tailoring 60: to make Rollo")
     end)
 end)
 
@@ -323,6 +392,70 @@ describe("aviso en la subasta", function()
     end)
 end)
 
+describe("menú de ajustes dentro del juego", function()
+    local function find(entries, kind, text)
+        for _, e in ipairs(entries) do
+            if e.kind == kind and e.text == text then
+                return e
+            end
+        end
+    end
+
+    it("el panel de Opciones > AddOns va por secciones", function()
+        local env, ns = boot()
+        local headers = { ns.L.SECTION_MARKS, ns.L.SECTION_COUNTS, ns.L.SECTION_AUCTION }
+        assert.are.same(headers, Cliente.fake(env).SettingsHeaders())
+    end)
+
+    it("el icono de la mochila y el de la bolsa combinada traen sus opciones", function()
+        local _, ns, fake = boot()
+        for _, tag in ipairs({ "MENU_CONTAINER_FRAME", "MENU_CONTAINER_FRAME_COMBINED" }) do
+            local entry = find(fake.OpenMenu(tag), "button", ns.L.ADDON_TITLE)
+            assert(entry, "sin entrada en " .. tag)
+            local checkboxes, titles = 0, 0
+            for _, child in ipairs(entry.children) do
+                checkboxes = checkboxes + (child.kind == "checkbox" and 1 or 0)
+                titles = titles + (child.kind == "title" and 1 or 0)
+            end
+            assert.are.equal(7, checkboxes)
+            assert.are.equal(3, titles)
+        end
+        assert.are.same({}, fake.OpenMenu("MENU_OTRO"))
+    end)
+
+    it("una casilla del menú cambia la opción, la guarda en el panel y la aplica", function()
+        local env, ns, fake = boot({ bags = { [0] = { [1] = 100 } } })
+        env.ContainerFrame1:Show()
+        env.ContainerFrame1:UpdateItems()
+        local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", ns.L.ADDON_TITLE)
+        local box = find(entry.children, "checkbox", ns.L.OPT_MARK_BAGS)
+        assert.is_true(box.isSelected())
+        box.setSelected()
+        assert.is_false(ns.db.markBags)
+        assert.is_false(ns.settings.markBags:GetValue())
+        assert.is_false(box.isSelected())
+        assert.is_nil(fake.Mark(fake.Button("ContainerFrame1", 1)))
+    end)
+
+    it("«Todos los ajustes...» abre el panel (no en combate)", function()
+        local env, ns, fake = boot()
+        local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", ns.L.ADDON_TITLE)
+        local more = find(entry.children, "button", ns.L.MENU_MORE)
+        more.onClick()
+        assert.are.same({ ns.settingsCategory:GetID() }, env:SettingsRegistry().opened)
+        env:SetCombat(true)
+        more.onClick()
+        assert.are.equal(1, #env:SettingsRegistry().opened)
+    end)
+
+    it("en español", function()
+        local _, _, fake = boot({ locale = "esES" })
+        local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", "GuardaMateriales")
+        assert.is_not_nil(find(entry.children, "checkbox", "Marcar en bolsas y banco"))
+        assert.is_not_nil(find(entry.children, "button", "Todos los ajustes..."))
+    end)
+end)
+
 describe("/guardamat item", function()
     local env, ns
 
@@ -374,6 +507,22 @@ describe("Datos/Recetas.lua (generado)", function()
             assert(ns.PROFESSIONS[parent], "subhabilidad con padre desconocido " .. parent)
         end
         assert(ns.DATA_BUILD:match("^1%.%d+%.%d+%.%d+$"), ns.DATA_BUILD)
+    end)
+
+    it("un sastre que ya pasó la receta del rollo sigue guardando el paño de lino por el rollo", function()
+        local profile = ns.Materials.BuildProfile({ [TAILORING] = { rank = 60, maxRank = 150 } }, false)
+        local result = ns.Materials.Evaluate(2589, profile) -- Paño de lino
+        assert.is_true(result.keep)
+        assert.are.equal(0, result.entries[1].useful) -- el rollo es gris antes de 60
+        assert.are.equal(2996, result.entries[1].via.item) -- Rollo de paño de lino
+        for item, uses in pairs(ns.PRODUCES) do
+            for skill, made in pairs(uses) do
+                assert(ns.MATERIALS[item][skill], "intermedio sin receta propia: " .. item)
+                for _, product in ipairs(made) do
+                    assert(ns.MATERIALS[product], "producto que no es material: " .. product)
+                end
+            end
+        end
     end)
 
     it("incluye materiales clásicos conocidos y las secundarias", function()

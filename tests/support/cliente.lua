@@ -6,6 +6,7 @@
 --       para dejar un hueco vacío)
 --   opts.skills = { [40] = { rank = 120, maxRank = 300 } }  (C_SkillInfo.GetSkillLineInfoByID)
 --   opts.bags = { [0] = { [1] = itemID, ... }, ... }  (contenido de las bolsas y del banco)
+--   opts.itemNames = { [itemID] = "Nombre" }  (lo que ya está en la caché del cliente)
 -- El controlador se obtiene con Cliente.fake(env) (ver más abajo).
 local WowEnv = require("wow_env")
 
@@ -88,6 +89,10 @@ function M.new(opts)
         postCalls = {},
         onLoaded = {},
         sounds = {},
+        itemNames = opts.itemNames or {},
+        itemRequests = {},
+        menus = {},
+        headers = {},
     }
 
     local function itemAt(bag, slot)
@@ -138,6 +143,12 @@ function M.new(opts)
             GetItemID = function(loc)
                 return itemAt(loc.bag, loc.slot)
             end,
+            GetItemNameByID = function(id)
+                return state.itemNames[id]
+            end,
+            RequestLoadItemDataByID = function(id)
+                state.itemRequests[#state.itemRequests + 1] = id
+            end,
             GetItemLink = function(loc)
                 local id = itemAt(loc.bag, loc.slot)
                 return id and ("|Hitem:" .. id .. "|h[Objeto " .. id .. "]|h")
@@ -153,6 +164,15 @@ function M.new(opts)
                 state.onLoaded[#state.onLoaded + 1] = { addon = addon, fn = fn }
             end,
         },
+        Menu = {
+            ModifyMenu = function(tag, fn)
+                state.menus[tag] = state.menus[tag] or {}
+                table.insert(state.menus[tag], fn)
+            end,
+        },
+        CreateSettingsListSectionHeaderInitializer = function(name)
+            return { header = name }
+        end,
         PlaySound = function(kit)
             state.sounds[#state.sounds + 1] = kit
         end,
@@ -172,6 +192,15 @@ function M.new(opts)
     envOpts.globals = globals
 
     local env = WowEnv.new(envOpts)
+    -- Settings devuelve además el layout de la categoría; aquí solo guarda las cabeceras.
+    local register = env.Settings.RegisterVerticalLayoutCategory
+    env.Settings.RegisterVerticalLayoutCategory = function(name)
+        local layout = {}
+        function layout:AddInitializer(initializer)
+            state.headers[#state.headers + 1] = initializer.header
+        end
+        return register(name), layout
+    end
     env.Enum.TooltipDataType = { Item = 0, Spell = 1 }
     env:_NewWidget("GameTooltip", "ItemRefTooltip", env.UIParent):Hide()
     newContainer(env, "ContainerFrame1", 0)
@@ -241,6 +270,43 @@ function M.new(opts)
     end
     function fake.Sounds()
         return state.sounds
+    end
+    function fake.ItemRequests()
+        return state.itemRequests
+    end
+    function fake.SettingsHeaders()
+        return state.headers
+    end
+    -- Genera un menú de Blizzard con su etiqueta y devuelve lo que han añadido los addons:
+    -- { kind = "divider" | "button" | "title" | "checkbox", text, children, onClick, isSelected, setSelected }.
+    local function newDescription()
+        local d = { entries = {} }
+        local function add(entry)
+            d.entries[#d.entries + 1] = entry
+            return entry
+        end
+        function d:CreateDivider()
+            add({ kind = "divider" })
+        end
+        function d:CreateTitle(text)
+            add({ kind = "title", text = text })
+        end
+        function d:CreateButton(text, onClick)
+            local child = newDescription()
+            add({ kind = "button", text = text, onClick = onClick, children = child.entries })
+            return child
+        end
+        function d:CreateCheckbox(text, isSelected, setSelected)
+            add({ kind = "checkbox", text = text, isSelected = isSelected, setSelected = setSelected })
+        end
+        return d
+    end
+    function fake.OpenMenu(tag)
+        local root = newDescription()
+        for _, fn in ipairs(state.menus[tag] or {}) do
+            fn(env.UIParent, root, nil)
+        end
+        return root.entries
     end
 
     return env

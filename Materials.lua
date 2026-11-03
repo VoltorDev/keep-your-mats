@@ -47,13 +47,17 @@ function Materials.BuildProfile(professions, includeSecondaries)
 end
 
 -- nil si el objeto no es material de ninguna profesión del perfil. Si lo es:
--- { keep = alguna receta aún sube, entries = { { skill, rank, learned, useful, total, maxGray } } },
--- con las profesiones en las que sube primero.
-function Materials.Evaluate(itemID, profile)
+-- { keep, reach, entries = { { skill, rank, learned, useful, total, maxGray, via } } }, con las
+-- profesiones en las que sirve primero. `via` = { item, reach }: un material que esa profesión
+-- fabrica con este y que aún te sirve (Paño de lino -> Rollo de paño de lino), aunque la receta del
+-- intermedio ya sea gris. `reach` = hasta qué rango te sirve, contando los intermedios.
+local function EvaluateIn(itemID, profile, visiting)
     local uses = ns.MATERIALS[itemID]
     if not uses then
         return nil
     end
+    visiting[itemID] = true -- corta ciclos (A fabrica B y B fabrica A)
+    local produces = ns.PRODUCES and ns.PRODUCES[itemID]
     local result
     for skill, grays in pairs(uses) do
         local p = profile[skill]
@@ -68,24 +72,42 @@ function Materials.Evaluate(itemID, profile)
                     maxGray = gray
                 end
             end
-            result = result or { keep = false, entries = {} }
-            result.entries[#result.entries + 1] = {
+            local entry = {
                 skill = skill,
                 rank = p.rank,
                 learned = p.learned,
                 useful = useful,
                 total = #grays,
                 maxGray = maxGray,
+                reach = useful > 0 and maxGray or 0,
             }
-            if useful > 0 then
+            for _, product in ipairs(produces and produces[skill] or {}) do
+                if not visiting[product] then
+                    local sub = EvaluateIn(product, profile, visiting)
+                    if sub and sub.keep and (not entry.via or sub.reach > entry.via.reach) then
+                        entry.via = { item = product, reach = sub.reach }
+                    end
+                end
+            end
+            if entry.via and entry.via.reach > entry.reach then
+                entry.reach = entry.via.reach
+            end
+            result = result or { keep = false, reach = 0, entries = {} }
+            result.entries[#result.entries + 1] = entry
+            if useful > 0 or entry.via then
                 result.keep = true
+            end
+            if entry.reach > result.reach then
+                result.reach = entry.reach
             end
         end
     end
+    visiting[itemID] = nil
     if result then
         table.sort(result.entries, function(x, y)
-            if (x.useful > 0) ~= (y.useful > 0) then
-                return x.useful > 0
+            local xs, ys = x.useful > 0 or x.via ~= nil, y.useful > 0 or y.via ~= nil
+            if xs ~= ys then
+                return xs
             end
             if x.learned ~= y.learned then
                 return x.learned
@@ -96,8 +118,12 @@ function Materials.Evaluate(itemID, profile)
     return result
 end
 
+function Materials.Evaluate(itemID, profile)
+    return EvaluateIn(itemID, profile, {})
+end
+
 -- Otros personajes con las mismas reglas (no se comparten objetos entre Hardcore y normal) a los
--- que el material aún les sube algo: { { key, skill, rank, useful } }.
+-- que el material aún les sirve: { { key, skill, rank, useful, via } }.
 function Materials.EvaluateAlts(itemID)
     local out = {}
     local uses = ns.MATERIALS[itemID]
@@ -111,8 +137,8 @@ function Materials.EvaluateAlts(itemID)
             if ruleset == nil or entry.ruleset == nil or entry.ruleset == ruleset then
                 local result = Materials.Evaluate(itemID, Materials.BuildProfile(entry.professions, false))
                 for _, e in ipairs(result and result.entries or {}) do
-                    if e.useful > 0 then
-                        out[#out + 1] = { key = key, skill = e.skill, rank = e.rank, useful = e.useful }
+                    if e.useful > 0 or e.via then
+                        out[#out + 1] = { key = key, skill = e.skill, rank = e.rank, useful = e.useful, via = e.via }
                     end
                 end
             end

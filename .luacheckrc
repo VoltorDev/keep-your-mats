@@ -25,6 +25,8 @@ globals = {
 read_globals = {
     "AbbreviateNumbers",
     "AuctionHouseFrame",
+    "CreateSettingsListSectionHeaderInitializer",
+    "Menu",
     "C_AddOns",
     "C_GameRules",
     "C_RestrictedActions",

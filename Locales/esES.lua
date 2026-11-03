@@ -7,12 +7,17 @@ end
 
 local L = ns.L
 
-L.LOADED = "cargado. Escribe /guardamat para ver las opciones."
+L.LOADED = "cargado. Ajustes: clic en el icono de la bolsa, en el botón de addons del minimapa o en Opciones > AddOns."
 L.SLASH_HELP = "Comandos: /guardamat [config | debug | item <enlace o ID> | reset]"
 L.ERR_COMBAT = "No disponible en combate; inténtalo al salir de él."
 L.RESET_CONFIRM = "Escribe /guardamat reset confirmar para volver a los valores por defecto."
 L.RESET_DONE = "Opciones restauradas a los valores por defecto."
 L.COMPARTMENT_TOOLTIP = "Clic para abrir las opciones."
+
+L.SECTION_MARKS = "Qué se ve"
+L.SECTION_COUNTS = "Qué cuenta"
+L.SECTION_AUCTION = "Subasta"
+L.MENU_MORE = "Todos los ajustes..."
 
 L.OPT_ENABLED = "Activar"
 L.OPT_ENABLED_TT = "Enciende o apaga todas las marcas, líneas del tooltip y avisos del addon."
@@ -34,9 +39,12 @@ L.OPT_AH_WARNING_TT = "Avisa con un mensaje y un sonido al poner en venta un mat
 L.TOOLTIP_HEADER = "Material de profesión"
 L.NOT_LEARNED = "%s (sin aprender)"
 L.KEEP_LINE = "Guárdalo: %s, te suben %d recetas (hasta %d)"
+L.LATER_LINE = "Guárdalo: %s, para fabricar %s, que te sirve hasta %d"
+L.ALSO_LINE = "  y para fabricar %s, que te sirve hasta %d"
 L.DONE_LINE = "%s: ya no te sube (todo gris desde %d)"
 L.USED_LINE = "%s: se usa en %d recetas"
 L.ALT_LINE = "%s, %s %d: le suben %d recetas"
+L.ALT_LATER_LINE = "%s, %s %d: para fabricar %s"
 L.ALT_MORE = "...y %d más"
 L.AH_WARNING = "¡Lo necesitas para %s!"
 L.AH_WARNING_CHAT = "%s aún te sube %s. Guárdalo en vez de venderlo."

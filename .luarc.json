@@ -35,6 +35,7 @@
     "ContainerFrameCombinedBags",
     "TooltipDataProcessor",
     "ItemRefTooltip",
-    "C_SkillInfo"
+    "C_SkillInfo",
+    "CreateSettingsListSectionHeaderInitializer"
   ]
 }
