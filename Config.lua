@@ -129,6 +129,9 @@ function module.AddBagMenu(_, rootDescription)
         end
     end
     sub:CreateDivider()
+    sub:CreateButton(L.MENU_PLAN, function()
+        ns:OpenPlan()
+    end)
     sub:CreateButton(L.MENU_MORE, function()
         ns:OpenSettings()
     end)

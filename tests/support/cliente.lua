@@ -91,6 +91,10 @@ function M.new(opts)
         sounds = {},
         itemNames = opts.itemNames or {},
         itemRequests = {},
+        counts = opts.counts or {}, -- objetos en bolsas y banco (C_Item.GetItemCount)
+        spellNames = opts.spellNames or {},
+        knownSpells = opts.knownSpells or {}, -- C_SpellBook.IsSpellKnown
+        recipeInfo = opts.recipeInfo or {}, -- C_TradeSkillUI.GetRecipeInfo (ventana abierta)
         menus = {},
         headers = {},
     }
@@ -146,6 +150,9 @@ function M.new(opts)
             GetItemNameByID = function(id)
                 return state.itemNames[id]
             end,
+            GetItemCount = function(id)
+                return state.counts[id] or 0
+            end,
             RequestLoadItemDataByID = function(id)
                 state.itemRequests[#state.itemRequests + 1] = id
             end,
@@ -154,6 +161,22 @@ function M.new(opts)
                 return id and ("|Hitem:" .. id .. "|h[Objeto " .. id .. "]|h")
             end,
         },
+        C_Spell = {
+            GetSpellName = function(id)
+                return state.spellNames[id]
+            end,
+        },
+        C_SpellBook = {
+            IsSpellKnown = function(id)
+                return state.knownSpells[id] == true
+            end,
+        },
+        C_TradeSkillUI = {
+            GetRecipeInfo = function(id)
+                return state.recipeInfo[id]
+            end,
+        },
+        UISpecialFrames = {},
         TooltipDataProcessor = {
             AddTooltipPostCall = function(dataType, fn)
                 state.postCalls[#state.postCalls + 1] = { type = dataType, fn = fn }
@@ -217,6 +240,12 @@ function M.new(opts)
     end
     function fake.SetSkills(skills)
         state.skills = skills
+    end
+    function fake.SetCounts(counts)
+        state.counts = counts
+    end
+    function fake.SetRecipeInfo(info)
+        state.recipeInfo = info
     end
     function fake.SetBags(bags)
         state.bags = bags

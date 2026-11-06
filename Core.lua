@@ -22,6 +22,9 @@ ns.CHAR_DEFAULTS = {
     -- Profesiones que este personaje piensa aprender: "p<skillLine>" = true. Config.lua rellena
     -- una clave a false por profesión cuando ya están cargados los datos de recetas.
     planned = {},
+    -- Recetas que este personaje conoce ([hechizo] = true), vistas con la ventana de la profesión
+    -- abierta: el plan de subida las usa con la ventana cerrada.
+    known = {},
 }
 
 -- MIGRATIONS[n] convierte la base de datos de cuenta del esquema n-1 al n; CHAR_MIGRATIONS hace lo

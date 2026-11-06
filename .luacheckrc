@@ -24,6 +24,11 @@ globals = {
 -- API de WoW que el addon lee. Añade aquí cada global nueva que uses.
 read_globals = {
     "AbbreviateNumbers",
+    "Auctionator", -- opcional: precios del plan (Prices.lua)
+    "C_Spell",
+    "C_SpellBook",
+    "C_TradeSkillUI",
+    "UISpecialFrames",
     "AuctionHouseFrame",
     "CreateSettingsListSectionHeaderInitializer",
     "Menu",

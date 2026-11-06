@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## AllowLoadGameType: camelot, forever
 ## ExcludeLoadGameType: standard, classic
-## Title: GuardaMateriales
+## Title: Keep Your Mats
 ## Notes: Marks the materials in your bags that still level your professions, so you keep them instead of selling them.
 ## Notes-esES: Marca en tus bolsas los materiales que aún te suben las profesiones, para que los guardes en vez de venderlos.
 ## Notes-esMX: Marca en tus bolsas los materiales que aún te suben las profesiones, para que los guardes en vez de venderlos.
@@ -27,10 +27,14 @@ Identity.lua
 Secrets.lua
 Core.lua
 Datos\Recetas.lua
+Datos\Planes.lua
 Materials.lua
+Planner.lua
+Prices.lua
 Professions.lua
 Config.lua
 Slash.lua
 Modules\Bags.lua
 Modules\Tooltip.lua
 Modules\AuctionHouse.lua
+Modules\Plan.lua

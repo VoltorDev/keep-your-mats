@@ -76,6 +76,43 @@ local function PrintItem(argument)
     end
 end
 
+-- /guardamat plan [chat] [profesión] [hasta | max]: ventana del plan de subida (o el plan en el chat).
+local function PlanCommand(argument)
+    local Plan = ns.Modules.Plan
+    local words = {}
+    for word in argument:gmatch("%S+") do
+        words[#words + 1] = word
+    end
+    local toChat = words[1] and words[1]:lower() == "chat"
+    if toChat then
+        table.remove(words, 1)
+    end
+    local target
+    local last = words[#words]
+    if last and (tonumber(last) or last:lower() == "max") then
+        target = tonumber(last) or "max"
+        table.remove(words, #words)
+    end
+    local name = table.concat(words, " ")
+    local skill = Plan.FindSkill(name)
+    if name ~= "" and not skill then
+        ns:Print(L.PLAN_UNKNOWN_SKILL:format(name))
+        return
+    end
+    if toChat then
+        skill = skill or Plan.Skills()[1]
+        if not skill then
+            ns:Print(L.PLAN_NO_SKILLS)
+            return
+        end
+        for _, line in ipairs(Plan.Lines(skill, target or "cap")) do
+            print(line)
+        end
+        return
+    end
+    ns:OpenPlan(skill, target)
+end
+
 SLASH_GUARDAMATERIALES1 = "/guardamat"
 SLASH_GUARDAMATERIALES2 = "/guardamateriales"
 SlashCmdList.GUARDAMATERIALES = function(message)
@@ -87,6 +124,8 @@ SlashCmdList.GUARDAMATERIALES = function(message)
         ns:PrintDiagnostics()
     elseif command == "item" then
         PrintItem(argument)
+    elseif command == "plan" then
+        PlanCommand(argument)
     elseif command == "reset" then
         if argument == "confirm" or argument == "confirmar" then
             ns:ResetDB()

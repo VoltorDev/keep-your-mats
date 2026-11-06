@@ -1,6 +1,6 @@
 # Plan — GuardaMateriales
 
-Único plan vivo del addon. Actualizado el 03-11-2026.
+Único plan vivo del addon. Actualizado el 05-11-2026.
 
 ## Objetivo
 
@@ -21,7 +21,9 @@ del lanzamiento.
 | Ajustes dentro del juego (03-11-2026, pedido de Nico: «menú de ajustes dentro del juego, no por comando»): panel de Opciones > AddOns por secciones y entrada en el menú del icono de la bolsa (`Menu.ModifyMenu` con `MENU_CONTAINER_FRAME` y `MENU_CONTAINER_FRAME_COMBINED`) con las 7 casillas y «Todos los ajustes...». Los comandos quedan como extra | Sí | Tests del menú y del panel (casilla → opción guardada, aplicada y reflejada en el panel; sin abrir en combate). Etiquetas de menú leídas en la interfaz de Forever (build 70291). **Sin ver en el cliente** |
 | Profesiones que pienso aprender (03-11-2026, aceptado por Nico): una casilla por primaria (9) y por personaje (`GuardaMaterialesCharDB.planned`, claves `p<skillLine>`), en su sección del panel y en un submenú del icono de la bolsa. Cuentan con rango 0 y se copian a `db.chars` para que los alts las vean | Sí | Tests: perfil, submenú → marca y tooltip, alt previsto, español. **Sin ver en el cliente** |
 | Opciones (7 casillas) y `/guardamat` (`item`, `debug`, `reset`) | Sí | Tests |
-| Comprobaciones fuera del juego | — | Las seis pasan (03-11-2026): luacheck, StyLua, LuaLS, `api_forever` (3 avisos de secretos revisados: GUID y clase se filtran, `CHAT_MSG_SKILL` no se lee), 128 tests en Lua 5.1 y LuaJIT, sin XML |
+| Plan para subir (05-11-2026, pedido de Nico: réplica gratis de las guías de profesiones de Zygor). Datos: `Datos/Planes.lua` (2231 recetas con umbral amarillo y gris, reactivos con cantidad, objeto fabricado, si se aprende sola y qué objeto la enseña; 513 precios de tienda), del mismo generador y build 70753. `Planner.lua` (camino más barato punto a punto: coste esperado = coste / probabilidad de Vanilla; descuenta bolsas y banco; intermedios fabricados si salen más baratos, un nivel; recetas no conocidas desde su amarillo y, para rellenar huecos, antes con aviso; las de objeto solo si se conocen). `Prices.lua` (Auctionator subasta/mercader, firma leída en su código v341; si no, BuyPrice de referencia). `Modules/Plan.lua` (ventana con botón por profesión y «Hasta mi tope actual»/«Hasta el final», `/guardamat plan [chat] [profesión] [hasta\|max]`, entrada en el menú de la bolsa, recetas conocidas con `C_TradeSkillUI.GetRecipeInfo` al abrir la profesión y `C_SpellBook.IsSpellKnown` de respaldo) | Sí | 24 tests (`tests/plan_spec.lua`): dificultad, camino más barato, inventario, sin precio, sin Auctionator y con él, recetas por aprender y de objeto, hueco, intermedio, ventana, comando, menú y escaneo de conocidas; con los datos reales, Sastrería 1→150 sin huecos. **Sin ver en el cliente** |
+| Ajuste tras revisar el plan con datos reales (05-11-2026): las recetas con menos de un 20 % de probabilidad de subir (`Planner.MIN_CHANCE`) solo se usan si no hay otra; los tramos con más de 3 fabricaciones por punto (`GRIND_PER_POINT`) llevan el aviso «aquí suele subirse con planos o patrones». Medido con precios de referencia: Herrería 267→285 sigue pidiendo ~3700 barras de mitril y Peletería ~3700 de cuero grueso, porque con solo recetas de entrenador no hay alternativa; en Vanilla ese tramo se sube con planos y patrones de objeto | Sí | 1 test nuevo (153 en total); el aviso se ve en el texto del plan |
+| Comprobaciones fuera del juego | — | Las seis pasan (05-11-2026): luacheck, StyLua, LuaLS, `api_forever` (3 avisos de secretos revisados: GUID y clase se filtran, `CHAT_MSG_SKILL` no se lee), 152 tests en Lua 5.1 y LuaJIT, sin XML |
 | Enlazado en `_forever_\Interface\AddOns` | Sí | Junction creada el 03-11-2026 |
 
 ## Pendiente
@@ -45,13 +47,33 @@ del lanzamiento.
      se marcan y el tooltip dice «(pienso aprenderla)». Aprenderla después: debe pasar a tu rango real.
    - Con Sastrería por encima de 50 y paño de lino en la bolsa: marca y línea «para fabricar Rollo de
      paño de lino».
+   - **Plan para subir** (`/guardamat plan`): que la ventana se abra, se mueva, se cierre con Escape y que
+     el texto quepa y haga scroll. Que los pasos salgan con el nombre de la receta (`C_Spell.GetSpellName`)
+     y los materiales con su nombre (si salen «objeto N», que se corrijan solos al cargar).
+   - Abrir la ventana de la profesión y volver al plan: las recetas que conoces ya no deben llevar
+     «apréndela». Si siguen, `C_TradeSkillUI.GetRecipeInfo(...).learned` no se lee como se espera con la
+     ventana abierta: anotar qué devuelve con `/dump C_TradeSkillUI.GetRecipeInfo(2963)`.
+   - Con Auctionator y un escaneo hecho: «Precios: subasta de Auctionator» y cifras parecidas a las que
+     enseña Auctionator en el tooltip. Sin escaneo, cae al precio de referencia.
+   - Comprobar un tramo contra el juego: que el color del paso coincida con el de la receta en la ventana de
+     la profesión (los umbrales de las DB2 y la fórmula de Vanilla son una estimación) y que las cantidades
+     del inventario cuadren con las bolsas y el banco.
+   - Con una profesión sin aprender marcada en «Profesiones que pienso aprender»: que aparezca su botón y
+     empiece en 1.
 2. **Regenerar los datos tras cada parche** que toque recetas (`python -I -B tools/generar_datos.py`) y
    repasar el recuento por profesión que imprime.
 3. **Ideas, sin decidir**: lista de objetos a ignorar a mano; aviso también al vender al mercader;
    marcas en las bolsas de SegundaPantalla o de addons de bolsas (Baganator, etc.) si Nico los usa;
-   refinar con las recetas aprendidas al abrir la ventana de la profesión (`C_TradeSkillUI`).
+   refinar las marcas con las recetas aprendidas (el plan ya las guarda en `known`). Plan: rango de
+   aprendizaje real de cada receta (la DB2 no lo trae; quizá `C_TradeSkillUI.GetRecipeSourceText`, sin
+   documentar); coste de comprar las recetas de objeto; contar los puntos que dan los intermedios.
 
 ## Decisiones
+
+- Plan para subir: solo informa (nada de comprar ni publicar; política de Blizzard y un clic por acción).
+  Las recetas que no conoces se planifican desde su amarillo porque la DB2 de Forever no trae su rango de
+  aprendizaje (MinSkillLineRank vale 1 en casi todas); no se inventa. Sin Auctionator, el precio de tienda
+  (BuyPrice) se enseña como referencia, no como precio real.
 
 - Se cuentan las recetas no aprendidas: el addon avisa de lo que te servirá para subir, no solo de lo
   que ya puedes fabricar. El tooltip enseña el detalle para decidir.

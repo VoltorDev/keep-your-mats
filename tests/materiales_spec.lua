@@ -450,7 +450,7 @@ describe("menú de ajustes dentro del juego", function()
 
     it("en español", function()
         local _, _, fake = boot({ locale = "esES" })
-        local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", "GuardaMateriales")
+        local entry = find(fake.OpenMenu("MENU_CONTAINER_FRAME"), "button", "Keep Your Mats")
         assert.is_not_nil(find(entry.children, "checkbox", "Marcar en bolsas y banco"))
         assert.is_not_nil(find(entry.children, "button", "Todos los ajustes..."))
     end)

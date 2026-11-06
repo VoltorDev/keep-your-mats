@@ -9,9 +9,10 @@ local L = setmetatable({}, {
 })
 ns.L = L
 
-L.ADDON_TITLE = "GuardaMateriales"
+L.ADDON_TITLE = "Keep Your Mats"
 L.LOADED = "loaded. Settings: click the bag icon, the addons button by the minimap, or Options > AddOns."
-L.SLASH_HELP = "Commands: /guardamat [config | debug | item <link or ID> | reset]"
+L.SLASH_HELP = "Commands: /guardamat [config | plan [chat] [profession] [up to | max] | "
+    .. "debug | item <link or ID> | reset]"
 L.ERR_COMBAT = "Not available in combat; try again when combat ends."
 L.RESET_CONFIRM = "Type /guardamat reset confirm to restore the defaults."
 L.RESET_DONE = "Settings restored to defaults."
@@ -56,6 +57,39 @@ L.AH_WARNING_CHAT = "%s still levels %s. Keep it instead of selling it."
 
 L.ITEM_UNKNOWN = "Not a material of any profession you count."
 L.ITEM_BAD = "Give an item link (shift-click) or a numeric item ID."
+
+L.MENU_PLAN = "Leveling plan..."
+L.PLAN_TITLE = "Keep Your Mats: leveling plan"
+L.PLAN_TARGET_CAP = "Up to my current cap"
+L.PLAN_TARGET_MAX = "Up to the end"
+L.PLAN_HEADER = "%s: from %d to %d"
+L.PLAN_NOTHING = "Nothing to plan: you are already there."
+L.PLAN_CAP_NOTE = "Your cap now is %d: train the next rank to go past it."
+L.PLAN_PRICES_AUCTIONATOR = "Prices: Auctionator's auction price (or a vendor's, if cheaper)."
+L.PLAN_PRICES_REFERENCE = "Prices: shop price from the game data, only as a reference. Install Auctionator "
+    .. "and scan the auction house for real prices."
+L.PLAN_STEP = "%d-%d  %s x%d"
+L.PLAN_LEARN = "(learn it: trainer or another source)"
+L.PLAN_GRIND =
+    "|cffff7f00(many crafts per point: this range is usually levelled with plans or patterns you do not know yet)|r"
+L.PLAN_EARLY = "(learn it if your trainer already teaches it; if not, you need another recipe here)"
+L.PLAN_NO_PRICE_STEP = "(no price)"
+L.PLAN_GAP = "No recipe levels you from %d with what is known: you may need a recipe from an item."
+L.PLAN_MATERIALS = "Materials:"
+L.PLAN_USE = "  %s: %d from your bags and bank"
+L.PLAN_CRAFT = "  %s: make %d yourself (cheaper than buying)"
+L.PLAN_BUY = "  %s: buy %d (%s each)"
+L.PLAN_BUY_NO_PRICE = "  %s: buy %d (no price)"
+L.PLAN_TOTAL = "Estimated cost: %s"
+L.PLAN_MISSING = "(+%d materials without a price)"
+L.PLAN_ESTIMATE = "Estimate: Vanilla skill-up chances; recipes you do not know count from when they turn yellow."
+L.PLAN_ITEM = "item %d"
+L.PLAN_RECIPE = "recipe %d"
+L.PLAN_NO_SKILLS = 'No profession to plan: learn one or tick one under "Professions I plan to learn".'
+L.PLAN_UNKNOWN_SKILL = "Unknown profession: %s"
+L.MONEY_GOLD = "g"
+L.MONEY_SILVER = "s"
+L.MONEY_COPPER = "c"
 
 L.DEBUG_HEADER = "Diagnostics (paste this when reporting a problem):"
 

@@ -21,6 +21,23 @@ para subir tus profesiones, para que los guardes en vez de venderlos en la subas
   otro de tus personajes con las mismas reglas de reino (Hardcore aparte). Cada personaje se recuerda al
   entrar con él.
 
+- **Plan para subir** (`/guardamat plan`, o el menú del icono de la bolsa → «Plan para subir
+  profesiones...»): para cada profesión tuya o que piensas aprender, qué receta fabricar en cada tramo
+  y cuántas veces, por el camino más barato, desde tu rango hasta tu tope actual («Hasta mi tope
+  actual») o hasta que ninguna receta suba («Hasta el final»). Los pasos van con el color de la
+  dificultad. Debajo, los materiales: lo que gastas de tus bolsas y banco, los intermedios que te sale
+  más barato fabricar tú (rollos, barras) y lo que hay que comprar, con su precio y el coste total.
+  - Precios: con Auctionator, el menor entre su precio de subasta y el de mercader que haya visto; sin
+    él, el precio de tienda de los datos del juego, que es **solo una referencia** (muchos materiales no
+    los vende ningún mercader y la subasta va por libre).
+  - Es una **estimación**: probabilidad de subida de Vanilla (segura en naranja y bajando de amarillo a
+    gris). Los datos de Forever no dicen con qué rango se aprende cada receta, así que las que no conoces
+    cuentan desde que se ponen amarillas y llevan «apréndela: entrenador u otra fuente». Si eso deja un
+    hueco, se propone una aún naranja con el aviso de que quizá el entrenador todavía no te la enseñe.
+    Las que enseña un objeto (patrones, planos) solo se usan si ya las conoces.
+  - Sabe qué recetas conoces al abrir la ventana de la profesión (se recuerda por personaje).
+  - Solo informa: no compra en la subasta ni fabrica por ti.
+
 Un material «te sirve» si alguna receta que lo usa sigue por debajo de gris para tu nivel actual, o si
 con él fabricas un intermedio que te servirá más adelante (paño de lino → rollo de paño de lino, mena →
 barra): el paño se guarda aunque la receta del rollo ya sea gris, mientras el rollo te siga subiendo. Se
@@ -38,15 +55,18 @@ nivel, menos las de Season of Discovery, que el cliente arrastra pero Forever no
 ## Comandos (opcionales)
 
 - `/guardamat` (o `/guardamateriales`) abre el panel.
+- `/guardamat plan [profesión] [hasta | max]` abre el plan (p. ej. `/guardamat plan sastrería 150`);
+  `/guardamat plan chat [profesión] [hasta | max]` lo escribe en el chat.
 - `/guardamat item <enlace o ID>` escribe en el chat lo mismo que el tooltip.
 - `/guardamat debug` muestra el diagnóstico, con las profesiones tal como las devuelve el cliente.
 - `/guardamat reset confirmar` restaura las opciones (los personajes recordados se conservan).
 
 ## Datos de recetas
 
-`Datos/Recetas.lua` lo genera `tools/generar_datos.py` a partir de las tablas DB2 del propio cliente
-de Forever (wago.tools, producto `wowf`: SkillLine, SkillLineAbility, SpellReagents,
-SpellEffect, TradeSkillCategory e ItemSparse). Tras un parche que cambie recetas:
+`Datos/Recetas.lua` (marcas) y `Datos/Planes.lua` (plan de subida) los genera `tools/generar_datos.py`
+a partir de las tablas DB2 del propio cliente de Forever (wago.tools, producto `wowf`: SkillLine,
+SkillLineAbility, SpellReagents, SpellEffect, TradeSkillCategory, ItemSparse, ItemEffect e
+ItemXItemEffect). Tras un parche que cambie recetas:
 
 ```powershell
 python -I -B tools/generar_datos.py

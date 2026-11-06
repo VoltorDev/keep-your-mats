@@ -36,6 +36,8 @@
     "TooltipDataProcessor",
     "ItemRefTooltip",
     "C_SkillInfo",
-    "CreateSettingsListSectionHeaderInitializer"
+    "CreateSettingsListSectionHeaderInitializer",
+    "Auctionator",
+    "UISpecialFrames"
   ]
 }

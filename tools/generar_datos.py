@@ -1,7 +1,11 @@
 """Genera Datos/Recetas.lua a partir de las tablas DB2 del cliente de WoW Forever.
 
 Fuente: wago.tools, producto `wowf` (las tablas se leen del propio cliente de Forever).
-Tablas: SkillLine, SkillLineAbility, SpellReagents, SpellEffect, TradeSkillCategory e ItemSparse.
+Tablas: SkillLine, SkillLineAbility, SpellReagents, SpellEffect, TradeSkillCategory, ItemSparse,
+ItemEffect e ItemXItemEffect.
+
+Salidas: Datos/Recetas.lua (materiales, para las marcas) y Datos/Planes.lua (recetas completas,
+para el plan de subida: dificultad, reactivos con cantidad, objeto fabricado y receta de objeto).
 
 Uso:
     python -I -B tools/generar_datos.py                 # última build de wowf
@@ -14,6 +18,12 @@ Reglas:
 - Para cada material y profesión guarda el umbral gris (TrivialSkillLineRankHigh) de cada
   receta que lo usa: con la habilidad actual del personaje se sabe cuántas aún le suben.
 - Un reactivo que no existe en ItemSparse no puede estar en las bolsas: se descarta.
+- Plan de subida (Datos/Planes.lua): por receta, su umbral amarillo (TrivialSkillLineRankLow) y
+  gris (TrivialSkillLineRankHigh), si se aprende sola con la profesión (AcquireMethod 1), el objeto
+  que la enseña si lo hay (ItemEffect con TriggerType 6, directo o por un hechizo de aprender), lo
+  que fabrica y cuántos, y sus reactivos con cantidad. Precio de tienda (BuyPrice) de cada reactivo.
+  La DB2 de Forever no trae el rango con el que se aprende cada receta (MinSkillLineRank vale 1 en
+  casi todas): no se guarda.
 - Materiales intermedios: si una receta convierte un material en otro que también es material
   (Paño de lino -> Rollo de paño de lino), se guarda en PRODUCES. Así el paño cuenta mientras el
   rollo te siga sirviendo, aunque la receta del rollo ya sea gris.
@@ -30,8 +40,19 @@ import urllib.request
 
 WAGO = "https://wago.tools"
 PRODUCT = "wowf"
-TABLES = ["SkillLine", "SkillLineAbility", "SpellReagents", "SpellEffect", "TradeSkillCategory", "ItemSparse"]
+TABLES = [
+    "SkillLine",
+    "SkillLineAbility",
+    "SpellReagents",
+    "SpellEffect",
+    "TradeSkillCategory",
+    "ItemSparse",
+    "ItemEffect",
+    "ItemXItemEffect",
+]
 CREATE_ITEM = 24  # SpellEffect.Effect de las recetas que fabrican un objeto
+LEARN_SPELL = 36  # SpellEffect.Effect de los hechizos que enseñan otro (EffectTriggerSpell)
+TRIGGER_LEARN = 6  # ItemEffect.TriggerType de los objetos que enseñan un hechizo al usarlos
 
 # Líneas de habilidad que se tratan como profesión. "secondary": se vigila aunque el personaje
 # no la haya aprendido (Cocina, Primeros auxilios y Pesca). Venenos es de pícaro y solo cuenta si
@@ -136,6 +157,111 @@ def build_data(tables):
     return materials, produces, parents, icons, recipes, skipped_sod
 
 
+def build_plans(tables):
+    """Recetas completas por profesión base, para el planificador de subida."""
+    categories = {int(r["ID"]): r for r in tables["TradeSkillCategory"]}
+    excluded = {
+        cid for cid, r in categories.items() if EXCLUDED_CATEGORY_NAME in (r["Name_lang"] or "").upper()
+    }
+    reagents_by_spell = {int(r["SpellID"]): r for r in tables["SpellReagents"]}
+    sparse = {int(r["ID"]): r for r in tables["ItemSparse"]}
+    created = {}  # spell -> (objeto, cantidad)
+    learns = {}  # hechizo de aprender -> hechizos que enseña
+    for r in tables["SpellEffect"]:
+        effect = int(r["Effect"])
+        spell = int(r["SpellID"])
+        if effect == CREATE_ITEM and int(r["EffectItemType"]) and spell not in created:
+            qty = max(1, int(round(float(r["EffectBasePointsF"] or 1))))
+            created[spell] = (int(r["EffectItemType"]), qty)
+        elif effect == LEARN_SPELL and int(r["EffectTriggerSpell"]):
+            learns.setdefault(spell, set()).add(int(r["EffectTriggerSpell"]))
+    effect_item = {int(r["ItemEffectID"]): int(r["ItemID"]) for r in tables["ItemXItemEffect"]}
+    taught_by = {}  # receta -> objeto que la enseña (el de menor ID si hay varios)
+    for r in tables["ItemEffect"]:
+        if int(r["TriggerType"]) != TRIGGER_LEARN:
+            continue
+        item = effect_item.get(int(r["ID"]))
+        if not item:
+            continue
+        spell = int(r["SpellID"])
+        for taught in {spell} | learns.get(spell, set()):
+            if taught not in taught_by or item < taught_by[taught]:
+                taught_by[taught] = item
+
+    plans = {p: [] for p in PROFESSIONS}
+    prices = {}
+    seen = set()
+    for row in tables["SkillLineAbility"]:
+        skill = int(row["SkillLine"])
+        spell = int(row["Spell"])
+        if skill not in PROFESSIONS or (skill, spell) in seen:
+            continue
+        reagents = reagents_by_spell.get(spell)
+        if not reagents or int(row["TradeSkillCategoryID"]) in excluded:
+            continue
+        yellow = int(row["TrivialSkillLineRankLow"])
+        gray = int(row["TrivialSkillLineRankHigh"])
+        if gray <= 0:
+            continue  # sin datos de dificultad: no sirve para planificar
+        parts = []
+        for i in range(8):
+            item = int(reagents[f"Reagent_{i}"])
+            count = int(reagents[f"ReagentCount_{i}"])
+            if item == 0 or count <= 0 or item not in sparse:
+                continue
+            parts.append((item, count))
+            buy = int(sparse[item]["BuyPrice"] or 0)
+            if buy > 0:
+                prices[item] = buy
+        if not parts:
+            continue
+        seen.add((skill, spell))
+        output, qty = created.get(spell, (0, 1))
+        plans[skill].append(
+            {
+                "s": spell,
+                "y": min(yellow, gray) if yellow > 0 else gray,
+                "g": gray,
+                "a": int(row["AcquireMethod"]) == 1,
+                "t": taught_by.get(spell, 0),
+                "o": output,
+                "q": qty,
+                "r": parts,
+            }
+        )
+    for skill in plans:
+        plans[skill].sort(key=lambda p: (p["y"], p["g"], p["s"]))
+    return plans, prices
+
+
+def plans_to_lua(plans, prices, build):
+    today = datetime.date.today().strftime("%d-%m-%Y")
+    out = io.StringIO()
+    out.write("local _, ns = ...\n\n")
+    out.write(f"-- GENERADO por tools/generar_datos.py con las tablas DB2 de Forever (wago.tools, {PRODUCT}\n")
+    out.write(f"-- build {build}, {today}). No se edita a mano: se regenera.\n")
+    out.write("-- RECIPES[skillLine] = { { s = hechizo, y = umbral amarillo, g = umbral gris, a = se aprende\n")
+    out.write("-- con la profesión, t = objeto que la enseña (0 si ninguno), o = objeto fabricado, q = cuántos,\n")
+    out.write("-- r = { objeto, cantidad, objeto, cantidad... } } }. BUY_PRICE[objeto] = precio de tienda (cobre).\n\n")
+    out.write("ns.RECIPES = {\n")
+    for skill in sorted(plans):
+        out.write(f"    [{skill}] = {{\n")
+        for p in plans[skill]:
+            r = ", ".join(f"{item}, {count}" for item, count in p["r"])
+            a = "true" if p["a"] else "false"
+            out.write(
+                f"        {{ s = {p['s']}, y = {p['y']}, g = {p['g']}, a = {a}, t = {p['t']}, "
+                f"o = {p['o']}, q = {p['q']}, r = {{ {r} }} }},\n"
+            )
+        out.write("    },\n")
+    out.write("}\n\n")
+    out.write("ns.BUY_PRICE = {\n")
+    for item in sorted(prices):
+        out.write(f"    [{item}] = {prices[item]},\n")
+    out.write("}\n")
+    return out.getvalue()
+
+
 def to_lua(materials, produces, parents, icons, build):
     today = datetime.date.today().strftime("%d-%m-%Y")
     out = io.StringIO()
@@ -190,6 +316,10 @@ def main():
 
     args.salida.parent.mkdir(parents=True, exist_ok=True)
     args.salida.write_text(to_lua(materials, produces, parents, icons, build), encoding="utf-8", newline="\n")
+    plans, prices = build_plans(tables)
+    planes = args.salida.parent / "Planes.lua"
+    planes.write_text(plans_to_lua(plans, prices, build), encoding="utf-8", newline="\n")
+    print(f"Planes.lua: {sum(len(v) for v in plans.values())} recetas con dificultad, {len(prices)} precios de tienda")
 
     print(
         f"build {build}: {len(materials)} materiales, {len(produces)} con productos intermedios; "
