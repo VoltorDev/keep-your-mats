@@ -94,3 +94,9 @@ Tests solos: `python tools/probar_addon.py . --ambos`. El cliente simulado propi
 ## Licencia
 
 MIT (ver `LICENSE`).
+
+## Capturas
+
+![Plan para subir profesiones](docs/screenshots/leveling-plan.png)
+
+![Opciones](docs/screenshots/options.png)

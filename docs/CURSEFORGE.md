@@ -24,7 +24,7 @@ propio): subirlo como **Beta** y pasarlo a Release cuando se vea en el juego el 
 | Versión de juego | **Forever 1.60.1** (Interface 16001). No marcar retail ni Classic |
 | Tipo de fichero | Beta (ver arriba) |
 | Avatar | 400×400, sin imágenes con copyright (nada de iconos de Blizzard). **Falta** |
-| Capturas | **Faltan**: bolsa con las marcas, tooltip de un material y el aviso rojo en la subasta. Solo en el juego |
+| Capturas | `docs/screenshots/`: `leveling-plan.png`, `options.png` (cliente en inglés, brujo nivel 9, 07-11-2026). Falta: bolsa con marcas, tooltip y aviso en la subasta. Con las bolsas de Baganator no salieron ni las marcas ni la línea del tooltip: revisar si es incompatibilidad. |
 
 ## Descripción (pegar en el editor de CurseForge)
 
@@ -106,3 +106,5 @@ Antes de pasarlo a Release: verlo en Forever (`/reload`, BugSack limpio, marcas,
 **1.0.1, nombre en inglés (05-11-2026, por orden de Nico: «Nombres en inglés siempre»):** el `## Title` del TOC pasa a «Keep Your Mats» y el zip a `mods\wow\dist\KeepYourMats-1.0.1.zip`. Es el zip publicado anterior con solo el título y la versión cambiados (los cambios sin publicar del repo no entran); la carpeta interna sigue siendo `GuardaMateriales`, así que las SavedVariables y la junction de `Interface\AddOns` no cambian. Subido como Release con las mismas versiones de juego; pasa por moderación. Desde ahora `empaquetar-wow.py` nombra el zip por el `## Title`.
 
 **1.1.0 (06-11-2026, por Claude con la sesión de Nico en Chrome, por orden suya: «Sí, súbelas»):** fichero «Keep Your Mats 1.1.0», `mods\wow\dist\KeepYourMats-1.1.0.zip`, tipo **Release**, versiones Forever 1.60.1, publicación automática al aprobarse. Changelog en inglés que nombra lo nuevo: plan para subir profesiones (`/guardamat plan`), recetas casi grises, materiales intermedios, «Professions I plan to learn», ajustes en el menú de la bolsa; además el nombre dentro del juego (enUS) pasa a «Keep Your Mats». Pasa las comprobaciones fuera del juego (06-11-2026); **sin probar en el cliente**.
+
+**Capturas (07-11-2026, por Claude con la sesión de Nico en Chrome, por orden suya: «Faltan los otros addons»):** `leveling-plan.png`, `options.png` de `docs/screenshots/` subidas a Media (galería), con el título por defecto de CurseForge. Falta: bolsa con marcas, tooltip y aviso en la subasta. Con las bolsas de Baganator no salieron ni las marcas ni la línea del tooltip: revisar si es incompatibilidad.
